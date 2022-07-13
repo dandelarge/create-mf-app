@@ -3,6 +3,10 @@ import fs from 'fs'
 import path from 'path'
 import glob from 'glob'
 import { Profiler, Project } from './types'
+import BuildContext from './build-context'
+import BuildLibraryStrategy from './build-strategies/build-library.strategy'
+import BuildApplicationStrategy from './build-strategies/build-application.strategy'
+import BuildApiServerStrategy from './build-strategies/build-api-server.strategy'
 
 const ncp = util.promisify(require('ncp').ncp)
 
@@ -67,55 +71,27 @@ const buildProfiler = ({
 //   - port: Port to run the project on
 
 export const buildProject = async (project: Project) => {
-  const { language, name, framework, type } = project
-  const lang = language === 'typescript' ? 'ts' : 'js'
-  const tempDir = type.toLowerCase()
+
+  let buildContext = new BuildContext();
+  const { name, type } = project
+
   const profiler = buildProfiler(project)
 
   switch (type) {
     case 'Library':
-      await ncp(
-        path.join(__dirname, `../templates/${tempDir}/typescript`),
-        project.name
-      )
+      buildContext.setStrategy(new BuildLibraryStrategy(project));
       break
-
     case 'API Server':
-      await ncp(
-        path.join(__dirname, `../templates/${tempDir}/${framework}`),
-        name
-      )
+      buildContext.setStrategy(new BuildApiServerStrategy(project));
       break
     case 'Application':
-      {
-        await ncp(
-          path.join(__dirname, `../templates/${tempDir}/${framework}/base`),
-          name
-        )
-        await ncp(
-          path.join(__dirname, `../templates/${tempDir}/${framework}/${lang}`),
-          name
-        )
-
-        if (profiler.CSS_EXTENSION === 'scss') {
-          fs.unlinkSync(path.normalize(`${name}/src/index.css`))
-          await ncp(
-              path.join(__dirname, '../templates/application-extras/tailwind'),
-              name
-          )
-
-          const packageJSON = JSON.parse(
-              fs.readFileSync(path.join(name, 'package.json'), 'utf8')
-          )
-          packageJSON.devDependencies.tailwindcss = '^2.0.2'
-          fs.writeFileSync(
-              path.join(name, 'package.json'),
-              JSON.stringify(packageJSON, null, 2)
-          )
-        }
-      }
+      buildContext.setStrategy(new BuildApplicationStrategy(project, profiler));
       break
+    default:
+      buildContext.setStrategy(new BuildApplicationStrategy(project, profiler));
   }
+
+  await buildContext.exec();
   renameGitignore(name)
 
   glob.sync(`${name}/**/*`).forEach((file) => {

@@ -16,4 +16,13 @@ export type Project = {
   port?: number
   name: string
   type: 'Application' | 'Library' | 'API Server'
+  version?: string
+}
+
+export interface BuildArgs {
+  project: Project;
+  profiler?: Profiler
+}
+export interface BuildStrategy {
+  build: () => Promise<void>
 }
