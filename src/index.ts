@@ -8,8 +8,6 @@ import BuildLibraryStrategy from './build-strategies/build-library.strategy'
 import BuildApplicationStrategy from './build-strategies/build-application.strategy'
 import BuildApiServerStrategy from './build-strategies/build-api-server.strategy'
 
-const ncp = util.promisify(require('ncp').ncp)
-
 const templateFile = (fileName: string, replacements: Profiler) => {
   const fileContent = fs.readFileSync(fileName, 'utf8').toString()
 

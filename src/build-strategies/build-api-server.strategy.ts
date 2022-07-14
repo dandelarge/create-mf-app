@@ -2,9 +2,7 @@ import { BuildStrategy, Project } from "../types";
 import path from 'path'
 import util from 'util'
 
-
 const ncp = util.promisify(require('ncp').ncp)
-
 export default class BuildApiServerStrategy implements BuildStrategy {
   project: Project;
 
